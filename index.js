@@ -1,8 +1,10 @@
 require('chart.js');
 import Chart from 'chart.js/auto'
+import Picker from "vanilla-picker";
 
 export default class Graph {
     priority = 10;
+
 
     // Whether to show a select-button for this plugin
     hideFromSelection = false;
@@ -14,14 +16,27 @@ export default class Graph {
     defaults = {};
 
     draw() {
-
+        createModalArea();
         const el = document.createElement('div');
+        const setupArea = document.createElement('div');
+        var that = this;
+        setupArea.classList.add('graphBtn');
+        setupArea.innerHTML = '⏣';
+        setupArea.onclick = function () {
+            var modal = document.getElementById("graph-settings-modal");
+            var sel = document.getElementById("typeChartSelect");
+            sel.value = that.defaults.typeChart;
+            chooseEditor("typeChartSelect")
+            modal.style.display = "block";
+
+        }
+        el.appendChild(setupArea);
         const chartID = createGraphID();
         const canvas = document.createElement('canvas');
         canvas.setAttribute("id", chartID);
         el.appendChild(canvas);
         this.yasr.resultsEl.appendChild(el);
-        switch(this.defaults.typeChart) {
+        switch (this.defaults.typeChart) {
             case 'LineChart':
                 createLineChart(chartID, this.yasr.results);
                 break;
@@ -37,6 +52,7 @@ export default class Graph {
     canHandleResults() {
         return !!this.yasr.results;
     }
+
     // A required function, used to identify the plugin, works best with an svg
     getIcon() {
         const textIcon = document.createElement("div");
@@ -53,6 +69,7 @@ export default class Graph {
         return textIcon;
     }
 }
+
 
 function createGraphID() {
     let i = 1;
@@ -155,6 +172,7 @@ function createLineChartData(results) {
         labels: labels,
         datasets: datasets
     }
+    console.log(retStruc);
     return retStruc;
 }
 
@@ -171,4 +189,136 @@ function createScatterChartData(results) {
     }
     return retData;
 }
+
+function createModalArea() {
+    var modObj = document.getElementById("graph-settings-modal");
+    if (!modObj) {
+        var modal = document.createElement('div');
+        modal.setAttribute('id', "graph-settings-modal");
+        modal.classList.add("graph-settings-modal");
+        var content = document.createElement('div');
+        content.classList.add('graph-settings-modal-content');
+        var closeBtn = document.createElement('span');
+        closeBtn.setAttribute('id', 'graph-settings-close');
+        closeBtn.onclick = function () {
+            closeModal();
+        }
+        closeBtn.innerHTML = '&times;';
+        var buttonArea = document.createElement('div');
+        buttonArea.classList.add("graph-settings-buttons");
+        var btn = document.createElement('button');
+        btn.innerHTML = 'Save';
+        btn.onclick = function () {
+            closeModal();
+        }
+        btn.classList.add("graph-settings-btn");
+        buttonArea.appendChild(btn);
+        var btn = document.createElement('button');
+        btn.innerHTML = 'Close';
+        btn.onclick = function () {
+            closeModal();
+        }
+        btn.classList.add("graph-settings-btn");
+        buttonArea.appendChild(btn);
+        var setSpace = document.createElement('div');
+        setSpace.setAttribute('id', 'settingSpace');
+        var modalBody = document.createElement('div');
+        var gp = graphPicker();
+        gp.onchange = function () {
+            chooseEditor('typeChartSelect');
+        }
+        modalBody.appendChild(gp);
+        var hge = document.createElement("div");
+        hge.id = 'hucGraphEditor';
+        content.appendChild(closeBtn);
+        content.appendChild(modalBody);
+        content.appendChild(setSpace);
+        content.appendChild(buttonArea);
+        content.appendChild(hge);
+        modal.appendChild(content);
+        document.getElementById("root").appendChild(modal);
+    }
+}
+
+function graphPicker() {
+    var listElements = [
+        {value: '--', label: '--'},
+        {value: 'PieChart', label: 'Pie chart'},
+        {value: 'DonutChart', label: 'Donut chart'},
+        {value: 'BarChart', label: 'Bar chart'},
+        {value: 'LineChart', label: 'Line chart'},
+        {value: 'ScatterChart', label: 'Scatter chart'}
+    ];
+    var sel = createSelect("Type of chart", listElements);
+    return sel;
+}
+
+function createSelect(txt, obj) {
+    var component = document.createElement('div');
+    component.classList.add('graph-settings-sel-comp');
+    var label = document.createElement('div');
+    label.classList.add('graph-settings-comp-label');
+    label.innerHTML = txt;
+    component.appendChild(label);
+    var sel = document.createElement('select');
+    sel.setAttribute('id', "typeChartSelect");
+    const keys = obj.keys();
+    for (let el of keys) {
+        var opt = document.createElement('option');
+        opt.text = obj[el].label;
+        opt.value = obj[el].value;
+        sel.appendChild(opt);
+    }
+
+    component.appendChild(sel);
+    return component;
+}
+
+function chooseEditor(id) {
+    var obj = document.getElementById(id);
+    switch (obj.value) {
+        case 'PieChart':
+            editor.pieChartEditor({});
+            break;
+        case 'ScatterChart':
+            editor.scatterChartEditor({});
+            break;
+        case 'DonutChart':
+            editor.donutChartEditor({});
+            break;
+        case 'BarChart':
+            editor.barChartEditor({});
+            break;
+        case 'LineChart':
+            editor.lineChartEditor({});
+            break;
+        default:
+            document.getElementById("hucGraphEditor").innerHTML = '';
+            break;
+    }
+}
+
+function closeModal() {
+    document.getElementById("graph-settings-modal").style.display = "none";
+}
+
+var editor = {
+    lineChartEditor: function (data) {
+        document.getElementById("hucGraphEditor").innerHTML = 'Line chart';
+    },
+    pieChartEditor: function (data) {
+        document.getElementById("hucGraphEditor").innerHTML = 'Pie chart';
+    },
+    scatterChartEditor: function (data) {
+        document.getElementById("hucGraphEditor").innerHTML = 'Scatter chart';
+    },
+    donutChartEditor: function (data) {
+        document.getElementById("hucGraphEditor").innerHTML = 'Donut chart';
+    },
+    barChartEditor: function (data) {
+        document.getElementById("hucGraphEditor").innerHTML = 'Bar chart';
+    }
+}
+
+
 

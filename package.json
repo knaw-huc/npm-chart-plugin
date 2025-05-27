@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@triply/yasgui": "^4.2.28",
-    "chart.js": "^4.4.2"
+    "chart.js": "^4.4.2",
+    "vanilla-picker": "^2.12.3"
   }
 }
