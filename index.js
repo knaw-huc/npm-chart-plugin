@@ -1,6 +1,9 @@
 require('chart.js');
 import Chart from 'chart.js/auto'
 import Picker from "vanilla-picker";
+var globalResults = {};
+const isID = true;
+const isCLASS = false;
 
 export default class Graph {
     priority = 10;
@@ -16,6 +19,7 @@ export default class Graph {
     defaults = {};
 
     draw() {
+        globalResults = this.yasr.results.json;
         createModalArea();
         const el = document.createElement('div');
         const setupArea = document.createElement('div');
@@ -24,11 +28,10 @@ export default class Graph {
         setupArea.innerHTML = '⏣';
         setupArea.onclick = function () {
             var modal = document.getElementById("graph-settings-modal");
-            var sel = document.getElementById("typeChartSelect");
-            sel.value = that.defaults.typeChart;
-            chooseEditor("typeChartSelect")
             modal.style.display = "block";
-
+            var seld = document.getElementById("typeChartSelect");
+            seld.value = that.defaults.typeChart;
+            chooseEditor("typeChartSelect");
         }
         el.appendChild(setupArea);
         const chartID = createGraphID();
@@ -68,6 +71,10 @@ export default class Graph {
         textIcon.appendChild(svg);
         return textIcon;
     }
+
+    getList() {
+        return this.res;
+    }
 }
 
 
@@ -100,7 +107,7 @@ function createDefault(chartID) {
                 labels: data.map(row => row.year),
                 datasets: [
                     {
-                        label: "Dummy grafiek",
+                        label: "Create your own graph here",
                         data: data.map(row => row.count)
                     }
                 ]
@@ -214,6 +221,13 @@ function createModalArea() {
         btn.classList.add("graph-settings-btn");
         buttonArea.appendChild(btn);
         var btn = document.createElement('button');
+        btn.innerHTML = 'View';
+        btn.onclick = function () {
+            closeModal();
+        }
+        btn.classList.add("graph-settings-btn");
+        buttonArea.appendChild(btn);
+        var btn = document.createElement('button');
         btn.innerHTML = 'Close';
         btn.onclick = function () {
             closeModal();
@@ -228,13 +242,14 @@ function createModalArea() {
             chooseEditor('typeChartSelect');
         }
         modalBody.appendChild(gp);
+        modalBody.setAttribute('id', "modalHeader");
         var hge = document.createElement("div");
         hge.id = 'hucGraphEditor';
         content.appendChild(closeBtn);
         content.appendChild(modalBody);
+        content.appendChild(hge);
         content.appendChild(setSpace);
         content.appendChild(buttonArea);
-        content.appendChild(hge);
         modal.appendChild(content);
         document.getElementById("root").appendChild(modal);
     }
@@ -249,23 +264,32 @@ function graphPicker() {
         {value: 'LineChart', label: 'Line chart'},
         {value: 'ScatterChart', label: 'Scatter chart'}
     ];
-    var sel = createSelect("Type of chart", listElements);
-    return sel;
+    var selb = createSelect("Type of chart", listElements, "typeChartSelect", isID);
+    return selb;
 }
 
-function createSelect(txt, obj) {
+function createSelect(txt, obj, val, isID) {
     var component = document.createElement('div');
     component.classList.add('graph-settings-sel-comp');
     var label = document.createElement('div');
     label.classList.add('graph-settings-comp-label');
-    label.innerHTML = txt;
+    label.innerHTML = txt + ": ";
     component.appendChild(label);
     var sel = document.createElement('select');
-    sel.setAttribute('id', "typeChartSelect");
+    if (isID) {
+        sel.setAttribute("id", val);
+    } else {
+        sel.classList.add(val);
+    }
     const keys = obj.keys();
     for (let el of keys) {
         var opt = document.createElement('option');
-        opt.text = obj[el].label;
+        if (obj[el].label !== undefined)
+        {
+            opt.text = obj[el].label;
+        } else {
+            opt.text = obj[el].value;
+        }
         opt.value = obj[el].value;
         sel.appendChild(opt);
     }
@@ -290,7 +314,7 @@ function chooseEditor(id) {
             editor.barChartEditor({});
             break;
         case 'LineChart':
-            editor.lineChartEditor({});
+            editor.lineChartEditor();
             break;
         default:
             document.getElementById("hucGraphEditor").innerHTML = '';
@@ -303,8 +327,9 @@ function closeModal() {
 }
 
 var editor = {
-    lineChartEditor: function (data) {
-        document.getElementById("hucGraphEditor").innerHTML = 'Line chart';
+    lineChartEditor: function () {
+        document.getElementById("hucGraphEditor").innerHTML = "";
+        document.getElementById("hucGraphEditor").appendChild(createLineChartEditor());
     },
     pieChartEditor: function (data) {
         document.getElementById("hucGraphEditor").innerHTML = 'Pie chart';
@@ -319,6 +344,69 @@ var editor = {
         document.getElementById("hucGraphEditor").innerHTML = 'Bar chart';
     }
 }
+
+function createLineChartEditor() {
+    var retObj = document.createElement('div');
+    var valueList = extractResultFields();
+    var sel = createSelect("Labelfield", valueList, "leLabelField", isCLASS);
+    sel.append(createDataSetList(valueList));
+    retObj.append(sel);
+    return retObj;
+}
+
+function extractResultFields() {
+    var valueList = [];
+    globalResults.head.vars.map((el) => {
+        var item = {"value": el};
+        valueList.push(item);
+    });
+    return valueList;
+}
+
+function createDataSetList(valueList) {
+    var header = document.createElement('div');
+    var el = document.createElement('span');
+    el.classList.add("editorDataSetHeader");
+    el.innerHTML = "Dataset(s) ";
+    header.append(el);
+    var el = document.createElement('span');
+    el.classList.add("editorDataSetHeaderPlus");
+    el.innerHTML = " + ";
+    el.onclick = function () {
+        addDataSetToList(valueList);
+    }
+    header.append(el);
+    var list = document.createElement('div');
+    list.setAttribute("id", "editorDataSetList");
+    header.append(list);
+    return header;
+}
+
+function addDataSetToList(valueList) {
+    var ds = document.createElement('div');
+    var sel = createSelect('Dataset', valueList, 'datasetSelect', isCLASS);
+    //ds.append(sel);
+    var colSpan = document.createElement('span');
+    var el = document.createElement('span');
+    el.innerHTML = "Color: ";
+    el.classList.add("editorColorText");
+    colSpan.append(el);
+    var el = document.createElement('div');
+    el.classList.add("colorBlock");
+    el.onclick = function (el) {
+        var picker = new Picker(this);
+        picker.onChange = function (color) {
+            el.style.backgroundColor = color;
+        }
+    }
+    colSpan.append(el);
+    sel.append(colSpan);
+    ds.append(sel);
+    var list = document.getElementById('editorDataSetList');
+    list.append(ds);
+}
+
+
 
 
 
