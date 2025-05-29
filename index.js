@@ -179,7 +179,6 @@ function createLineChartData(results) {
         labels: labels,
         datasets: datasets
     }
-    console.log(retStruc);
     return retStruc;
 }
 
@@ -330,6 +329,8 @@ var editor = {
     lineChartEditor: function () {
         document.getElementById("hucGraphEditor").innerHTML = "";
         document.getElementById("hucGraphEditor").appendChild(createLineChartEditor());
+        var valueList = extractResultFields();
+        addDataSetToList(valueList);
     },
     pieChartEditor: function (data) {
         document.getElementById("hucGraphEditor").innerHTML = 'Pie chart';
@@ -342,6 +343,14 @@ var editor = {
     },
     barChartEditor: function (data) {
         document.getElementById("hucGraphEditor").innerHTML = 'Bar chart';
+    }
+}
+
+var counter = {
+    count: 0,
+    getCount: function () {
+        this.count++;
+        return this.count;
     }
 }
 
@@ -384,6 +393,7 @@ function createDataSetList(valueList) {
 
 function addDataSetToList(valueList) {
     var ds = document.createElement('div');
+    ds.classList.add("dataSetListItem");
     var sel = createSelect('Dataset', valueList, 'datasetSelect', isCLASS);
     //ds.append(sel);
     var colSpan = document.createElement('span');
@@ -392,19 +402,26 @@ function addDataSetToList(valueList) {
     el.classList.add("editorColorText");
     colSpan.append(el);
     var el = document.createElement('div');
+    var i = counter.getCount();
     el.classList.add("colorBlock");
+    el.setAttribute("id", "colorBlock"  + i.toString());
     el.onclick = function (el) {
         var picker = new Picker(this);
         picker.onChange = function (color) {
-            el.style.backgroundColor = color;
+            var block = document.getElementById("colorBlock"  + i.toString());
+            block.style.background = color.rgbString;
         }
     }
     colSpan.append(el);
+    var colorInput = document.createElement('input');
+    colorInput.setAttribute("type", "hidden");
+
     sel.append(colSpan);
     ds.append(sel);
     var list = document.getElementById('editorDataSetList');
     list.append(ds);
 }
+
 
 
 
