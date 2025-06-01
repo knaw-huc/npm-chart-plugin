@@ -169,7 +169,7 @@ function createLineChartData(results) {
             label: fieldName,
             data: results.json.results.bindings.map(row => row[fieldName]["value"]),
             borderColor: colors[i],
-            fill: false,
+            fill: true,
             tension: 0.1
         }
         datasets.push(buffer);
@@ -179,6 +179,7 @@ function createLineChartData(results) {
         labels: labels,
         datasets: datasets
     }
+    console.log(retStruc);
     return retStruc;
 }
 
@@ -392,34 +393,79 @@ function createDataSetList(valueList) {
 }
 
 function addDataSetToList(valueList) {
+    var i = counter.getCount();
     var ds = document.createElement('div');
     ds.classList.add("dataSetListItem");
+    ds.setAttribute('id', 'dataSetListItem' + i.toString());
     var sel = createSelect('Dataset', valueList, 'datasetSelect', isCLASS);
-    //ds.append(sel);
-    var colSpan = document.createElement('span');
-    var el = document.createElement('span');
+    ds.append(sel);
+    var colSpan = document.createElement('div');
+    colSpan.classList.add("graph-settings-sel-comp")
+    var el = document.createElement('div');
     el.innerHTML = "Color: ";
     el.classList.add("editorColorText");
     colSpan.append(el);
-    var el = document.createElement('div');
-    var i = counter.getCount();
+    el = document.createElement('div');
     el.classList.add("colorBlock");
     el.setAttribute("id", "colorBlock"  + i.toString());
     el.onclick = function (el) {
-        var picker = new Picker(this);
-        picker.onChange = function (color) {
+        var picker = new Picker(document.getElementById("colorBlock"  + i.toString()));
+        picker.onDone = function (color) {
             var block = document.getElementById("colorBlock"  + i.toString());
             block.style.background = color.rgbString;
+            document.getElementById("colorValue" + i.toString()).value = color.rgbString;
         }
     }
     colSpan.append(el);
-    var colorInput = document.createElement('input');
-    colorInput.setAttribute("type", "hidden");
-
-    sel.append(colSpan);
-    ds.append(sel);
+    var colorInput = document.createElement('div');
+    el = document.createElement('input');
+    el.setAttribute("type", "hidden");
+    el.setAttribute("id", "colorValue" + i.toString());
+    el.classList.add("colorValue");
+    colorInput.append(el);
+    colSpan.append(colorInput);
+    ds.append(colSpan);
+    el = createFillForDataSet();
+    ds.append(el);
+    el = createTensionForDataSet();
+    ds.append(el);
+    var delDiv = document.createElement('div');
+    delDiv.innerHTML = 'Delete';
+    delDiv.classList.add('datasetDeleteBtn');
+    delDiv.onclick = function () {
+        if (window.confirm("Remove dataset?")) {
+            document.getElementById("dataSetListItem" + i.toString()).remove();
+        }
+    }
+    ds.append(delDiv);
     var list = document.getElementById('editorDataSetList');
     list.append(ds);
+}
+
+function createFillForDataSet() {
+    var listElements = [
+        {value: false, label: 'No'},
+        {value: true, label: 'Yes'},
+    ];
+    var sel = createSelect("Fill", listElements, "fillSelect", isCLASS);
+    return sel;
+}
+
+function createTensionForDataSet() {
+    var listElements = [
+        {value: 0.1, label: '0.1'},
+        {value: 0.2, label: '0.2'},
+        {value: 0.3, label: '0.3'},
+        {value: 0.4, label: '0.4'},
+        {value: 0.5, label: '0.5'},
+        {value: 0.6, label: '0.6'},
+        {value: 0.7, label: '0.7'},
+        {value: 0.8, label: '0.8'},
+        {value: 0.9, label: '0.9'},
+        {value: 1.0, label: '1.0'}
+    ];
+    var sel = createSelect("Tension", listElements, "fillSelect", isCLASS);
+    return sel;
 }
 
 
