@@ -179,7 +179,6 @@ function createLineChartData(results) {
         labels: labels,
         datasets: datasets
     }
-    console.log(retStruc);
     return retStruc;
 }
 
@@ -334,16 +333,20 @@ var editor = {
         addDataSetToList(valueList);
     },
     pieChartEditor: function (data) {
-        document.getElementById("hucGraphEditor").innerHTML = 'Pie chart';
+        //document.getElementById("hucGraphEditor").innerHTML = 'Pie chart';
+        document.getElementById("hucGraphEditor").innerHTML = "";
+        document.getElementById("hucGraphEditor").appendChild(createRoundChartEditor("pie"));
     },
     scatterChartEditor: function (data) {
         document.getElementById("hucGraphEditor").innerHTML = 'Scatter chart';
     },
     donutChartEditor: function (data) {
-        document.getElementById("hucGraphEditor").innerHTML = 'Donut chart';
+        document.getElementById("hucGraphEditor").innerHTML = "";
+        document.getElementById("hucGraphEditor").appendChild(createRoundChartEditor("donut"));
     },
     barChartEditor: function (data) {
-        document.getElementById("hucGraphEditor").innerHTML = 'Bar chart';
+        document.getElementById("hucGraphEditor").innerHTML = "";
+        document.getElementById("hucGraphEditor").appendChild(createBarChartEditor());
     }
 }
 
@@ -361,6 +364,25 @@ function createLineChartEditor() {
     var sel = createSelect("Labelfield", valueList, "leLabelField", isCLASS);
     sel.append(createDataSetList(valueList));
     retObj.append(sel);
+    var ds = document.createElement('div');
+
+    return retObj;
+}
+
+function createRoundChartEditor(typeChart) {
+    var retObj = document.createElement('div');
+    var valueList = extractResultFields();
+    var sel = createSelect("Labelfield", valueList, "roLabelField", isCLASS);
+    retObj.append(sel);
+    return retObj;
+}
+
+function createBarChartEditor() {
+    var retObj = document.createElement('div');
+    var valueList = extractResultFields();
+    var sel = createSelect("Data field", valueList, "BarDataField", isID);
+    retObj.append(sel);
+    retObj.append(barDataSet());
     return retObj;
 }
 
@@ -468,8 +490,73 @@ function createTensionForDataSet() {
     return sel;
 }
 
+function barDataSet() {
+    var retObj = document.createElement('div');
+    retObj.classList.add("editorDsRow");
+    var el = document.createElement('div');
+    el.setAttribute('id', 'pieLabel');
+    el.innerHTML = "Label: ";
+    retObj.append(el);
+    el = document.createElement('div');
+    var labInput = document.createElement('input');
+    labInput.setAttribute('type', 'text');
+    labInput.setAttribute('id', 'labelInputValue');
+    el.append(labInput);
+    retObj.append(el);
 
+    var colSpan = document.createElement('div');
+    colSpan.classList.add("graph-settings-sel-comp")
+    var el = document.createElement('div');
+    el.innerHTML = "Color: ";
+    el.classList.add("editorColorText");
+    colSpan.append(el);
+    el = document.createElement('div');
+    el.classList.add("colorBlock");
+    el.setAttribute("id", "colorBlock");
+    el.onclick = function (el) {
+        var picker = new Picker(document.getElementById("colorBlock"));
+        picker.onDone = function (color) {
+            var block = document.getElementById("colorBlock");
+            block.style.background = color.rgbString;
+            document.getElementById("colorValue").value = color.rgbString;
+        }
+    }
+    colSpan.append(el);
+    var colorInput = document.createElement('div');
+    el = document.createElement('input');
+    el.setAttribute("type", "hidden");
+    el.setAttribute("id", "colorValue");
+    el.classList.add("colorValue");
+    colorInput.append(el);
+    colSpan.append(colorInput);
+    retObj.append(colSpan);
 
+    colSpan = document.createElement('div');
+    colSpan.classList.add("graph-settings-sel-comp")
+    var el = document.createElement('div');
+    el.innerHTML = "Border color: ";
+    el.classList.add("editorColorText");
+    colSpan.append(el);
+    el = document.createElement('div');
+    el.classList.add("bcolorBlock");
+    el.setAttribute("id", "bcolorBlock");
+    el.onclick = function (el) {
+        var picker = new Picker(document.getElementById("bcolorBlock"));
+        picker.onDone = function (color) {
+            var block = document.getElementById("bcolorBlock");
+            block.style.background = color.rgbString;
+            document.getElementById("bcolorValue").value = color.rgbString;
+        }
+    }
+    colSpan.append(el);
+    var colorInput = document.createElement('div');
+    el = document.createElement('input');
+    el.setAttribute("type", "hidden");
+    el.setAttribute("id", "bcolorValue");
+    el.classList.add("bcolorValue");
+    colorInput.append(el);
+    colSpan.append(colorInput);
+    retObj.append(colSpan);
 
-
-
+    return retObj;
+}
