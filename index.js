@@ -1,6 +1,7 @@
 require('chart.js');
 import Chart from 'chart.js/auto'
 import Picker from "vanilla-picker";
+
 var globalResults = {};
 const isID = true;
 const isCLASS = false;
@@ -41,10 +42,10 @@ export default class Graph {
         this.yasr.resultsEl.appendChild(el);
         switch (this.defaults.typeChart) {
             case 'LineChart':
-                createLineChart(chartID, this.yasr.results);
+                createLineChart(chartID, this.yasr.results, this.defaults.defs);
                 break;
             case'ScatterChart':
-                createScatterChart(chartID, this.yasr.results);
+                createScatterChart(chartID, this.yasr.results, this.defaults.defs);
                 break;
             default:
                 createDefault(chartID);
@@ -116,8 +117,9 @@ function createDefault(chartID) {
     );
 }
 
-function createLineChart(chartID, results) {
-    const data = createLineChartData(results);
+function createLineChart(chartID, results, defs) {
+    const data = createLineChartData(results, defs);
+
     new Chart(
         document.getElementById(chartID),
         {
@@ -127,15 +129,14 @@ function createLineChart(chartID, results) {
     );
 }
 
-function createScatterChart(chartID, results) {
-    const data = createScatterChartData(results);
+function createScatterChart(chartID, results, defs) {
+    const data = createScatterChartData(results, defs);
     new Chart(
         document.getElementById(chartID),
         {
             type: 'scatter',
             data: data,
             options: {
-                backgroundColor: 'rgb(0, 0, 153)',
                 scales: {
                     x: {
                         type: 'linear',
@@ -147,7 +148,7 @@ function createScatterChart(chartID, results) {
     );
 }
 
-function createLineChartData(results) {
+function createLineChartData(results, defs) {
     const colors = [
         'rgb(0, 102, 0)',
         'rgb(0, 102, 0)',
@@ -158,19 +159,21 @@ function createLineChartData(results) {
         'rgb(204, 0, 102)',
         'rgb(175, 92, 96)'
     ]
+
     const fields = results.json.head.vars;
-    let fieldName = fields[0];
+    //let fieldName = fields[0];
+    let fieldName = defs.labelField;
     const labels = results.json.results.bindings.map(row => row[fieldName]["value"]);
     let datasets = [];
-    let i = 1;
-    while (i < fields.length) {
-        fieldName = fields[i];
+    let i = 0;
+    while (i < defs.dataSets.length) {
+        fieldName = defs.dataSets[i]["field"];
         let buffer = {
             label: fieldName,
             data: results.json.results.bindings.map(row => row[fieldName]["value"]),
-            borderColor: colors[i],
-            fill: true,
-            tension: 0.1
+            borderColor: defs.dataSets[i]["color"],
+            fill: defs.dataSets[i]["fill"],
+            tension: defs.dataSets[i]["density"]
         }
         datasets.push(buffer);
         i++;
@@ -182,18 +185,27 @@ function createLineChartData(results) {
     return retStruc;
 }
 
-function createScatterChartData(results) {
+function createScatterChartData(results, defs) {
     const fields = results.json.head.vars;
-    const xField = fields[0];
-    const yField = fields[1];
-    const data = results.json.results.bindings.map(row => ({x: row[xField]["value"], y: row[yField]["value"]}));
-    const retData = {
-        datasets: [{
-            label: "Excess death rate",
-            data: data
-        }]
+    let i = 0;
+    let dataSets = [];
+    while (i < defs.dataSets.length) {
+        let xField = defs.dataSets[i]["x-field"];
+        let yField = defs.dataSets[i]["y-field"];
+        let dsData = results.json.results.bindings.map(row => ({x: row[xField]["value"], y: row[yField]["value"]}));
+        let buffer = {
+            data: dsData,
+            label: defs.dataSets[i].label,
+            backgroundColor: defs.dataSets[i].color
+        }
+        dataSets.push(buffer);
+        i++;
     }
-    return retData;
+
+
+    return {
+        datasets: dataSets
+    };
 }
 
 function createModalArea() {
@@ -335,18 +347,18 @@ var editor = {
     pieChartEditor: function (data) {
         //document.getElementById("hucGraphEditor").innerHTML = 'Pie chart';
         document.getElementById("hucGraphEditor").innerHTML = "";
-        document.getElementById("hucGraphEditor").appendChild(createRoundChartEditor("pie"));
+        document.getElementById("hucGraphEditor").appendChild(indev("Pie"));
     },
     scatterChartEditor: function (data) {
         document.getElementById("hucGraphEditor").innerHTML = 'Scatter chart';
     },
     donutChartEditor: function (data) {
         document.getElementById("hucGraphEditor").innerHTML = "";
-        document.getElementById("hucGraphEditor").appendChild(createRoundChartEditor("donut"));
+        document.getElementById("hucGraphEditor").appendChild(indev("Donut"));
     },
     barChartEditor: function (data) {
         document.getElementById("hucGraphEditor").innerHTML = "";
-        document.getElementById("hucGraphEditor").appendChild(createBarChartEditor());
+        document.getElementById("hucGraphEditor").appendChild(indev("Bar"));
     }
 }
 
@@ -356,6 +368,13 @@ var counter = {
         this.count++;
         return this.count;
     }
+}
+
+function indev(txt) {
+    var el = document.createElement('div');
+    el.innerHTML = txt + " chart editor is still in development.";
+    el.classList.add("indevClass");
+    return el;
 }
 
 function createLineChartEditor() {
