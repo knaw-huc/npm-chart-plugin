@@ -3,8 +3,15 @@ import Chart from 'chart.js/auto'
 import Picker from "vanilla-picker";
 
 var globalResults = {};
+var globalDefs = {};
+var globalDefBuffer = {};
+var reload = null;
 const isID = true;
 const isCLASS = false;
+const EDITOR = true;
+const PREVIEW = false;
+let editorStatus = EDITOR;
+
 
 export default class Graph {
     priority = 10;
@@ -20,8 +27,11 @@ export default class Graph {
     defaults = {};
 
     draw() {
-        globalResults = this.yasr.results.json;
-        createModalArea();
+        globalResults = this.yasr.results;
+        globalDefs = this.defaults.defs;
+        reload = this.defaults.reload;
+        //console.log(globalResults);
+        createModalArea(this.defaults.defs);
         const el = document.createElement('div');
         const setupArea = document.createElement('div');
         var that = this;
@@ -32,7 +42,7 @@ export default class Graph {
             modal.style.display = "block";
             var seld = document.getElementById("typeChartSelect");
             seld.value = that.defaults.typeChart;
-            chooseEditor("typeChartSelect");
+            chooseEditor("typeChartSelect", that.defaults.defs);
         }
         el.appendChild(setupArea);
         const chartID = createGraphID();
@@ -42,7 +52,8 @@ export default class Graph {
         this.yasr.resultsEl.appendChild(el);
         switch (this.defaults.typeChart) {
             case 'LineChart':
-                createLineChart(chartID, this.yasr.results, this.defaults.defs);
+                //createLineChart(chartID, this.yasr.results, this.defaults.defs);
+                createLineChart(chartID, this.yasr.results, globalDefs);
                 break;
             case'ScatterChart':
                 createScatterChart(chartID, this.yasr.results, this.defaults.defs);
@@ -119,6 +130,7 @@ function createDefault(chartID) {
 
 function createLineChart(chartID, results, defs) {
     const data = createLineChartData(results, defs);
+    console.log(data);
 
     new Chart(
         document.getElementById(chartID),
@@ -146,6 +158,126 @@ function createScatterChart(chartID, results, defs) {
             }
         }
     );
+}
+
+function writeBufferDefs() {
+    var ch = document.getElementById("typeChartSelect").value;
+    switch (ch) {
+        case 'LineChart':
+            if (writeLineChartDefs()) {
+                reload();
+                closeModal();
+            }
+            break;
+        case 'ScatterChart':
+            writeScatterChartDefs();
+            break;
+        default:
+            writeError(ch + " editor values can't be saved!");
+
+    }
+}
+
+function writeError(msg) {
+    document.getElementById("edErrorArea").innerHTML = msg;
+    setTimeout(clearError, 2000);
+
+}
+
+function clearError() {
+    document.getElementById("edErrorArea").innerHTML = '';
+}
+
+function graphPreview() {
+    var ch = document.getElementById("typeChartSelect").value;
+    switch (ch) {
+        case 'LineChart':
+            editorStatus = PREVIEW;
+            if (writeLineChartDefs()) {
+                if (document.getElementById("graphPreview") !== null) {
+                    document.getElementById("graphPreview").remove();
+                }
+
+                var preview = document.createElement('canvas');
+                preview.setAttribute('id', 'graphPreview');
+                preview.setAttribute('width', '600');
+                document.getElementById("prevHolder").appendChild(preview);
+                createLineChart("graphPreview", globalResults, globalDefBuffer.chartConfig.options);
+            } else {
+                writeError("Data not complete for preview");
+            }
+            editorStatus = EDITOR;
+            break;
+        default:
+            writeError("No preview available for this graph...");
+    }
+}
+
+function writeLineChartDefs() {
+    var buffer = {
+        chartConfig: {
+            options: {
+                labelField: "",
+                dataSets: [],
+            },
+            chartType: "LineChart"
+        }
+    };
+    var lf = document.getElementById("leLabelField");
+    if (lf.value !== '--') {
+        buffer.chartConfig.options.labelField = lf.value;
+    } else {
+        writeError("No label field specified!");
+        return false;
+    }
+    var dsets = getDataSetsForWritingLineDefs();
+    if (dsets.length === 0) {
+        writeError('Not all data set fields have correct values!');
+        return false;
+    } else {
+        buffer.chartConfig.options.dataSets = dsets;
+    }
+    globalDefBuffer = buffer;
+    if (editorStatus === EDITOR) {
+        document.getElementById("chartDefsBuffer").innerText = JSON.stringify(buffer);
+    }
+    return true;
+}
+
+function getDataSetsForWritingLineDefs() {
+    var retSets = [];
+    var list = document.getElementsByClassName("dataSetListItem");
+    for (let i = 0; i < list.length; i++) {
+        let item = list.item(i);
+        let nr = item.getAttribute("data-datasetnr");
+        if (document.getElementById("datasetSelect" + nr).value === "") {
+            return [];
+        } else {
+            let buffer = {
+                field: document.getElementById("datasetSelect" + nr).value,
+                color: document.getElementById("colorValue" + nr).value,
+                fill: (document.getElementById("fillSelect" + nr).value === 'true'),
+                density: document.getElementById("tensionSelect" + nr).value
+            }
+            retSets.push(buffer);
+        }
+    }
+    return retSets;
+}
+
+function writeScatterChartDefs() {
+    var buffer = {
+        chartConfig: {
+            options: {
+                labelField: "",
+                dataSets: [],
+            },
+            chartType: "ScatterChart"
+        }
+    };
+
+    globalDefBuffer = buffer;
+    var inv = document.getElementById("chartDefsBuffer").innerText = JSON.stringify(buffer);
 }
 
 function createLineChartData(results, defs) {
@@ -208,7 +340,7 @@ function createScatterChartData(results, defs) {
     };
 }
 
-function createModalArea() {
+function createModalArea(defs) {
     var modObj = document.getElementById("graph-settings-modal");
     if (!modObj) {
         var modal = document.createElement('div');
@@ -222,19 +354,23 @@ function createModalArea() {
             closeModal();
         }
         closeBtn.innerHTML = '&times;';
+        var err = document.createElement('div');
+        err.setAttribute('id', 'edErrorArea');
+        //err.innerHTML = "Error";
         var buttonArea = document.createElement('div');
         buttonArea.classList.add("graph-settings-buttons");
         var btn = document.createElement('button');
         btn.innerHTML = 'Save';
         btn.onclick = function () {
-            closeModal();
+            writeBufferDefs();
+            //closeModal();
         }
         btn.classList.add("graph-settings-btn");
         buttonArea.appendChild(btn);
         var btn = document.createElement('button');
-        btn.innerHTML = 'View';
+        btn.innerHTML = 'Preview';
         btn.onclick = function () {
-            closeModal();
+            graphPreview();
         }
         btn.classList.add("graph-settings-btn");
         buttonArea.appendChild(btn);
@@ -256,10 +392,14 @@ function createModalArea() {
         modalBody.setAttribute('id', "modalHeader");
         var hge = document.createElement("div");
         hge.id = 'hucGraphEditor';
+        var prevHolder = document.createElement('div');
+        prevHolder.setAttribute('id', 'prevHolder');
         content.appendChild(closeBtn);
         content.appendChild(modalBody);
         content.appendChild(hge);
         content.appendChild(setSpace);
+        content.appendChild(err);
+        content.appendChild(prevHolder);
         content.appendChild(buttonArea);
         modal.appendChild(content);
         document.getElementById("root").appendChild(modal);
@@ -279,7 +419,7 @@ function graphPicker() {
     return selb;
 }
 
-function createSelect(txt, obj, val, isID) {
+function createSelect(txt, obj, val, isID, selectVal = '--') {
     var component = document.createElement('div');
     component.classList.add('graph-settings-sel-comp');
     var label = document.createElement('div');
@@ -304,7 +444,7 @@ function createSelect(txt, obj, val, isID) {
         opt.value = obj[el].value;
         sel.appendChild(opt);
     }
-
+    sel.value = selectVal;
     component.appendChild(sel);
     return component;
 }
@@ -325,7 +465,7 @@ function chooseEditor(id) {
             editor.barChartEditor({});
             break;
         case 'LineChart':
-            editor.lineChartEditor();
+            editor.lineChartEditor(globalDefs);
             break;
         default:
             document.getElementById("hucGraphEditor").innerHTML = '';
@@ -334,15 +474,26 @@ function chooseEditor(id) {
 }
 
 function closeModal() {
+    if (document.getElementById("graphPreview") !== null) {
+        document.getElementById("graphPreview").remove();
+    }
+    editorStatus = EDITOR;
     document.getElementById("graph-settings-modal").style.display = "none";
 }
 
 var editor = {
-    lineChartEditor: function () {
+    lineChartEditor: function (defs) {
         document.getElementById("hucGraphEditor").innerHTML = "";
-        document.getElementById("hucGraphEditor").appendChild(createLineChartEditor());
+        document.getElementById("hucGraphEditor").appendChild(createLineChartEditor(defs));
         var valueList = extractResultFields();
-        addDataSetToList(valueList);
+        if (defs.dataSets === undefined || defs.dataSets.length === 0) {
+            addDataSetToLineChartList(valueList);
+        } else {
+            defs.dataSets.map((item) => {
+                addDataSetToLineChartList(valueList, item.field, item.color, item.fill, item.density);
+            });
+        }
+
     },
     pieChartEditor: function (data) {
         //document.getElementById("hucGraphEditor").innerHTML = 'Pie chart';
@@ -377,14 +528,17 @@ function indev(txt) {
     return el;
 }
 
-function createLineChartEditor() {
+function createLineChartEditor(defs) {
     var retObj = document.createElement('div');
     var valueList = extractResultFields();
-    var sel = createSelect("Labelfield", valueList, "leLabelField", isCLASS);
+    var val = "--";
+    if (defs !== undefined || defs.length === 0) {
+        val = defs.labelField;
+    }
+    var sel = createSelect("Labelfield", valueList, "leLabelField", isID, val);
     sel.append(createDataSetList(valueList));
     retObj.append(sel);
-    var ds = document.createElement('div');
-
+    //var ds = document.createElement('div');
     return retObj;
 }
 
@@ -407,7 +561,7 @@ function createBarChartEditor() {
 
 function extractResultFields() {
     var valueList = [];
-    globalResults.head.vars.map((el) => {
+    globalResults.json.head.vars.map((el) => {
         var item = {"value": el};
         valueList.push(item);
     });
@@ -424,7 +578,7 @@ function createDataSetList(valueList) {
     el.classList.add("editorDataSetHeaderPlus");
     el.innerHTML = " + ";
     el.onclick = function () {
-        addDataSetToList(valueList);
+        addDataSetToLineChartList(valueList);
     }
     header.append(el);
     var list = document.createElement('div');
@@ -433,12 +587,13 @@ function createDataSetList(valueList) {
     return header;
 }
 
-function addDataSetToList(valueList) {
+function addDataSetToLineChartList(valueList, field = "", color = "rgb(140, 0, 0)", fill = false, density = 0.1) {
     var i = counter.getCount();
     var ds = document.createElement('div');
     ds.classList.add("dataSetListItem");
     ds.setAttribute('id', 'dataSetListItem' + i.toString());
-    var sel = createSelect('Dataset', valueList, 'datasetSelect', isCLASS);
+    ds.setAttribute('data-datasetnr', i.toString());
+    var sel = createSelect('Dataset', valueList, 'datasetSelect'  + i.toString(), isID, field);
     ds.append(sel);
     var colSpan = document.createElement('div');
     colSpan.classList.add("graph-settings-sel-comp")
@@ -449,13 +604,26 @@ function addDataSetToList(valueList) {
     el = document.createElement('div');
     el.classList.add("colorBlock");
     el.setAttribute("id", "colorBlock"  + i.toString());
+    if (color !== '') {
+        el.style.backgroundColor = color;
+    }
     el.onclick = function (el) {
-        var picker = new Picker(document.getElementById("colorBlock"  + i.toString()));
-        picker.onDone = function (color) {
-            var block = document.getElementById("colorBlock"  + i.toString());
-            block.style.background = color.rgbString;
-            document.getElementById("colorValue" + i.toString()).value = color.rgbString;
-        }
+        //var picker = new Picker(document.getElementById("colorBlock"  + i.toString()));
+
+        var picker = new Picker({
+            parent: document.getElementById("colorBlock"  + i.toString()),
+            popup: 'top',
+            color: document.getElementById("colorValue" + i.toString()).value,
+            alpha: false,
+            editor: false,
+            editorFormat: 'rgb',
+            onDone: function(color) {
+                var block = document.getElementById("colorBlock"  + i.toString());
+                block.style.background = color.rgbaString;
+                document.getElementById("colorValue" + i.toString()).value = color.rgbaString;
+            },
+        })
+
     }
     colSpan.append(el);
     var colorInput = document.createElement('div');
@@ -463,12 +631,16 @@ function addDataSetToList(valueList) {
     el.setAttribute("type", "hidden");
     el.setAttribute("id", "colorValue" + i.toString());
     el.classList.add("colorValue");
+    if (color !== "") {
+        el.value = color;
+    }
     colorInput.append(el);
     colSpan.append(colorInput);
     ds.append(colSpan);
-    el = createFillForDataSet();
+    el = createFillForDataSet(fill, i);
+
     ds.append(el);
-    el = createTensionForDataSet();
+    el = createTensionForDataSet(density, i);
     ds.append(el);
     var delDiv = document.createElement('div');
     delDiv.innerHTML = 'Delete';
@@ -483,16 +655,17 @@ function addDataSetToList(valueList) {
     list.append(ds);
 }
 
-function createFillForDataSet() {
+
+function createFillForDataSet(fill, i) {
     var listElements = [
         {value: false, label: 'No'},
         {value: true, label: 'Yes'},
     ];
-    var sel = createSelect("Fill", listElements, "fillSelect", isCLASS);
+    var sel = createSelect("Fill", listElements, "fillSelect" + i.toString(), isID, fill);
     return sel;
 }
 
-function createTensionForDataSet() {
+function createTensionForDataSet(tension, i) {
     var listElements = [
         {value: 0.1, label: '0.1'},
         {value: 0.2, label: '0.2'},
@@ -505,7 +678,7 @@ function createTensionForDataSet() {
         {value: 0.9, label: '0.9'},
         {value: 1.0, label: '1.0'}
     ];
-    var sel = createSelect("Tension", listElements, "fillSelect", isCLASS);
+    var sel = createSelect("Tension", listElements, "tensionSelect" + i.toString(), isID, tension);
     return sel;
 }
 
