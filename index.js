@@ -56,7 +56,7 @@ export default class Graph {
                 createLineChart(chartID, this.yasr.results, globalDefs);
                 break;
             case'ScatterChart':
-                createScatterChart(chartID, this.yasr.results, this.defaults.defs);
+                createScatterChart(chartID, this.yasr.results, globalDefs);
                 break;
             default:
                 createDefault(chartID);
@@ -501,7 +501,17 @@ var editor = {
         document.getElementById("hucGraphEditor").appendChild(indev("Pie"));
     },
     scatterChartEditor: function (data) {
-        document.getElementById("hucGraphEditor").innerHTML = 'Scatter chart';
+        document.getElementById("hucGraphEditor").innerHTML = "";
+        document.getElementById("hucGraphEditor").appendChild(createScatterChartEditor(defs));
+        var valueList = extractResultFields();
+        if (defs.dataSets === undefined || defs.dataSets.length === 0) {
+            addDataSetToScatterChartList(valueList);
+        } else {
+            defs.dataSets.map((item) => {
+                addDataSetToScatterChartList(valueList, item.field, item.color, item.fill, item.density);
+            });
+        }
+
     },
     donutChartEditor: function (data) {
         document.getElementById("hucGraphEditor").innerHTML = "";
@@ -540,6 +550,33 @@ function createLineChartEditor(defs) {
     retObj.append(sel);
     //var ds = document.createElement('div');
     return retObj;
+}
+
+function createScatterChartEditor(defs) {
+    var retObj = document.createElement('div');
+    retObj.setAttribute('id', 'scatterChartEditor');
+    var valueList = extractResultFields();
+    retObj.append(create);
+    return retObj;
+}
+
+function createScatterDataSetList() {
+    var header = document.createElement('div');
+    var el = document.createElement('span');
+    el.classList.add("editorDataSetHeader");
+    el.innerHTML = "Dataset(s) ";
+    header.append(el);
+    var el = document.createElement('span');
+    el.classList.add("editorDataSetHeaderPlus");
+    el.innerHTML = " + ";
+    el.onclick = function () {
+        addDataSetToScatterChartList(valueList);
+    }
+    header.append(el);
+    var list = document.createElement('div');
+    list.setAttribute("id", "editorDataSetList");
+    header.append(list);
+    return header;
 }
 
 function createRoundChartEditor(typeChart) {
@@ -587,12 +624,51 @@ function createDataSetList(valueList) {
     return header;
 }
 
+function addDataSetToScatterChartList(valuelist, x = '--', y = '--', label = '', color = "rgb(140, 0, 0)") {
+    var i = counter.getCount();
+    var ds = createEditorDataSet(i);
+    var sel = createSelect('X-field', valueList, 'datasetSelectX'  + i.toString(), isID, field);
+    ds.append(sel);
+    var sel = createSelect('Y-field', valueList, 'datasetSelectY'  + i.toString(), isID, field);
+    ds.append(sel);
+    var colSpan = document.createElement('div');
+    colSpan.classList.add("graph-settings-sel-comp")
+    var el = document.createElement('div');
+    el.innerHTML = "Color: ";
+    el.classList.add("editorColorText");
+    colSpan.append(el);
+    el = document.createElement('div');
+    el.classList.add("colorBlock");
+    el.setAttribute("id", "colorBlock"  + i.toString());
+    if (color !== '') {
+        el.style.backgroundColor = color;
+    }
+    el.onclick = function () {
+        newPicker(i);
+    }
+    colSpan.append(el);
+    var colorInput = document.createElement('div');
+    el = document.createElement('input');
+    el.setAttribute("type", "hidden");
+    el.setAttribute("id", "colorValue" + i.toString());
+    el.classList.add("colorValue");
+    if (color !== "") {
+        el.value = color;
+    }
+    colorInput.append(el);
+    colSpan.append(colorInput);
+    ds.append(colSpan);
+    var list = document.getElementById('editorDataSetList');
+    list.append(ds);
+}
+
 function addDataSetToLineChartList(valueList, field = "", color = "rgb(140, 0, 0)", fill = false, density = 0.1) {
     var i = counter.getCount();
-    var ds = document.createElement('div');
+    var ds = createEditorDataSet(i);
+    /*var ds = document.createElement('div');
     ds.classList.add("dataSetListItem");
     ds.setAttribute('id', 'dataSetListItem' + i.toString());
-    ds.setAttribute('data-datasetnr', i.toString());
+    ds.setAttribute('data-datasetnr', i.toString());*/
     var sel = createSelect('Dataset', valueList, 'datasetSelect'  + i.toString(), isID, field);
     ds.append(sel);
     var colSpan = document.createElement('div');
@@ -607,10 +683,9 @@ function addDataSetToLineChartList(valueList, field = "", color = "rgb(140, 0, 0
     if (color !== '') {
         el.style.backgroundColor = color;
     }
-    el.onclick = function (el) {
-        //var picker = new Picker(document.getElementById("colorBlock"  + i.toString()));
-
-        var picker = new Picker({
+    el.onclick = function () {
+        newPicker(i);
+        /*var picker = new Picker({
             parent: document.getElementById("colorBlock"  + i.toString()),
             popup: 'top',
             color: document.getElementById("colorValue" + i.toString()).value,
@@ -622,8 +697,7 @@ function addDataSetToLineChartList(valueList, field = "", color = "rgb(140, 0, 0
                 block.style.background = color.rgbaString;
                 document.getElementById("colorValue" + i.toString()).value = color.rgbaString;
             },
-        })
-
+        })*/
     }
     colSpan.append(el);
     var colorInput = document.createElement('div');
@@ -655,6 +729,29 @@ function addDataSetToLineChartList(valueList, field = "", color = "rgb(140, 0, 0
     list.append(ds);
 }
 
+function newPicker(i) {
+    var picker = new Picker({
+        parent: document.getElementById("colorBlock"  + i.toString()),
+        popup: 'top',
+        color: document.getElementById("colorValue" + i.toString()).value,
+        alpha: false,
+        editor: false,
+        editorFormat: 'rgb',
+        onDone: function(color) {
+            var block = document.getElementById("colorBlock"  + i.toString());
+            block.style.background = color.rgbaString;
+            document.getElementById("colorValue" + i.toString()).value = color.rgbaString;
+        },
+    })
+}
+
+function createEditorDataSet(i) {
+    var ds = document.createElement('div');
+    ds.classList.add("dataSetListItem");
+    ds.setAttribute('id', 'dataSetListItem' + i.toString());
+    ds.setAttribute('data-datasetnr', i.toString());
+    return ds;
+}
 
 function createFillForDataSet(fill, i) {
     var listElements = [
