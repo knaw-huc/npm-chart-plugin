@@ -456,7 +456,7 @@ function chooseEditor(id) {
             editor.pieChartEditor({});
             break;
         case 'ScatterChart':
-            editor.scatterChartEditor({});
+            editor.scatterChartEditor(globalDefs);
             break;
         case 'DonutChart':
             editor.donutChartEditor({});
@@ -500,7 +500,7 @@ var editor = {
         document.getElementById("hucGraphEditor").innerHTML = "";
         document.getElementById("hucGraphEditor").appendChild(indev("Pie"));
     },
-    scatterChartEditor: function (data) {
+    scatterChartEditor: function (defs) {
         document.getElementById("hucGraphEditor").innerHTML = "";
         document.getElementById("hucGraphEditor").appendChild(createScatterChartEditor(defs));
         var valueList = extractResultFields();
@@ -556,11 +556,11 @@ function createScatterChartEditor(defs) {
     var retObj = document.createElement('div');
     retObj.setAttribute('id', 'scatterChartEditor');
     var valueList = extractResultFields();
-    retObj.append(create);
+    retObj.append(createScatterDataSetList(valueList));
     return retObj;
 }
 
-function createScatterDataSetList() {
+function createScatterDataSetList(valueList) {
     var header = document.createElement('div');
     var el = document.createElement('span');
     el.classList.add("editorDataSetHeader");
@@ -624,7 +624,7 @@ function createDataSetList(valueList) {
     return header;
 }
 
-function addDataSetToScatterChartList(valuelist, x = '--', y = '--', label = '', color = "rgb(140, 0, 0)") {
+function addDataSetToScatterChartList(valueList, x = '--', y = '--', label = '', color = "rgb(140, 0, 0)") {
     var i = counter.getCount();
     var ds = createEditorDataSet(i);
     var sel = createSelect('X-field', valueList, 'datasetSelectX'  + i.toString(), isID, field);
