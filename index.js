@@ -804,7 +804,7 @@ function addDataSetToLineChartList(valueList, field = "", color = "rgb(140, 0, 0
 function newPicker(i) {
     var picker = new Picker({
         parent: document.getElementById("colorBlock"  + i.toString()),
-        popup: 'top',
+        popup: 'bottom',
         color: document.getElementById("colorValue" + i.toString()).value,
         alpha: false,
         editor: false,
