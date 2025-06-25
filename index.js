@@ -170,7 +170,10 @@ function writeBufferDefs() {
             }
             break;
         case 'ScatterChart':
-            writeScatterChartDefs();
+            if (writeScatterChartDefs()) {
+                reload();
+                closeModal();
+            }
             break;
         default:
             writeError(ch + " editor values can't be saved!");
@@ -203,6 +206,23 @@ function graphPreview() {
                 preview.setAttribute('width', '600');
                 document.getElementById("prevHolder").appendChild(preview);
                 createLineChart("graphPreview", globalResults, globalDefBuffer.chartConfig.options);
+            } else {
+                writeError("Data not complete for preview");
+            }
+            editorStatus = EDITOR;
+            break;
+        case 'ScatterChart':
+            editorStatus = PREVIEW;
+            if (writeScatterChartDefs()) {
+                if (document.getElementById("graphPreview") !== null) {
+                    document.getElementById("graphPreview").remove();
+                }
+
+                var preview = document.createElement('canvas');
+                preview.setAttribute('id', 'graphPreview');
+                preview.setAttribute('width', '600');
+                document.getElementById("prevHolder").appendChild(preview);
+                createScatterChart("graphPreview", globalResults, globalDefBuffer.chartConfig.options);
             } else {
                 writeError("Data not complete for preview");
             }
@@ -265,19 +285,48 @@ function getDataSetsForWritingLineDefs() {
     return retSets;
 }
 
+function getDataSetsForWritingScatterDefs() {
+    var retSets = [];
+    var list = document.getElementsByClassName("dataSetListItem");
+    for (let i = 0; i < list.length; i++) {
+        let item = list.item(i);
+        let nr = item.getAttribute("data-datasetnr");
+        if (document.getElementById('datasetSelectX' + nr).value === '' || document.getElementById('datasetSelectY' + nr).value === '' || document.getElementById('labelValue' + nr).value === '') {
+            return [];
+        } else {
+            let buffer = {};
+            buffer['x-field'] = document.getElementById('datasetSelectX' + nr).value;
+            buffer['y-field'] = document.getElementById('datasetSelectY' + nr).value;
+            buffer['color'] = document.getElementById('colorValue' + nr).value;
+            buffer['label'] = document.getElementById('labelValue' + nr).value;
+            retSets.push(buffer);
+        }
+    }
+
+    return retSets;
+}
+
 function writeScatterChartDefs() {
     var buffer = {
         chartConfig: {
             options: {
-                labelField: "",
                 dataSets: [],
             },
             chartType: "ScatterChart"
         }
     };
-
+    var dsets = getDataSetsForWritingScatterDefs();
+    if (dsets.length === 0) {
+        writeError('Not all data set fields have correct values!');
+        return false;
+    } else {
+        buffer.chartConfig.options.dataSets = dsets;
+    }
     globalDefBuffer = buffer;
-    var inv = document.getElementById("chartDefsBuffer").innerText = JSON.stringify(buffer);
+    if (editorStatus === EDITOR) {
+        document.getElementById("chartDefsBuffer").innerText = JSON.stringify(buffer);
+    }
+    return true;
 }
 
 function createLineChartData(results, defs) {
@@ -508,7 +557,7 @@ var editor = {
             addDataSetToScatterChartList(valueList);
         } else {
             defs.dataSets.map((item) => {
-                addDataSetToScatterChartList(valueList, item.field, item.color, item.fill, item.density);
+                addDataSetToScatterChartList(valueList, item["x-field"], item["y-field"], item.label, item.color);
             });
         }
 
@@ -627,9 +676,9 @@ function createDataSetList(valueList) {
 function addDataSetToScatterChartList(valueList, x = '--', y = '--', label = '', color = "rgb(140, 0, 0)") {
     var i = counter.getCount();
     var ds = createEditorDataSet(i);
-    var sel = createSelect('X-field', valueList, 'datasetSelectX'  + i.toString(), isID, field);
+    var sel = createSelect('X-field', valueList, 'datasetSelectX'  + i.toString(), isID, x);
     ds.append(sel);
-    var sel = createSelect('Y-field', valueList, 'datasetSelectY'  + i.toString(), isID, field);
+    var sel = createSelect('Y-field', valueList, 'datasetSelectY'  + i.toString(), isID, y);
     ds.append(sel);
     var colSpan = document.createElement('div');
     colSpan.classList.add("graph-settings-sel-comp")
@@ -658,6 +707,29 @@ function addDataSetToScatterChartList(valueList, x = '--', y = '--', label = '',
     colorInput.append(el);
     colSpan.append(colorInput);
     ds.append(colSpan);
+    var labelInput = document.createElement('div');
+    labelInput.classList.add('graph-settings-sel-comp');
+    var labelHolder = document.createElement('div');
+    labelHolder.classList.add('editorColorText');
+    el = document.createElement('span');
+    el.innerText = 'Label text: ';
+    labelHolder.append(el);
+    el = document.createElement('input');
+    el.setAttribute('type', 'text');
+    el.setAttribute('id', "labelValue" + i.toString());
+    el.value = label;
+    labelHolder.append(el);
+    labelInput.append(labelHolder);
+    ds.append(labelInput);
+    var delDiv = document.createElement('div');
+    delDiv.innerHTML = 'Delete';
+    delDiv.classList.add('datasetDeleteBtn');
+    delDiv.onclick = function () {
+        if (window.confirm("Remove dataset?")) {
+            document.getElementById("dataSetListItem" + i.toString()).remove();
+        }
+    }
+    ds.append(delDiv);
     var list = document.getElementById('editorDataSetList');
     list.append(ds);
 }
