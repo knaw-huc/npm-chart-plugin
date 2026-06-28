@@ -1,9 +1,33 @@
 {
-  "name": "huc-chart-plugin",
-  "version": "1.0.0",
+  "name": "yasgui-chart-plugin",
+  "version": "0.1.0",
+  "description": "Yasgui chart plugin",
   "dependencies": {
     "@triply/yasgui": "^4.2.28",
     "chart.js": "^4.4.2",
     "vanilla-picker": "^2.12.3"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "yasgui",
+    "geo"
+  ],
+  "homepage": "https://github.com/knaw-huc/npm-chart-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/knaw-huc/npm-chart-plugin/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/knaw-huc/npm-chart-plugin.git"
+  },
+  "license": "MIT",
+  "author": "Rob Zeeman",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
   }
 }
