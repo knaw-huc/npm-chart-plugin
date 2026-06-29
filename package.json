@@ -7,13 +7,11 @@
     "chart.js": "^4.4.2",
     "vanilla-picker": "^2.12.3"
   },
-  "main": "dist/index.js",
-  "files": [
-    "dist"
-  ],
+  "main": "index.js",
   "keywords": [
     "yasgui",
-    "geo"
+    "geo",
+    "tagging"
   ],
   "homepage": "https://github.com/knaw-huc/npm-chart-plugin#readme",
   "bugs": {
@@ -25,9 +23,5 @@
   },
   "license": "MIT",
   "author": "Rob Zeeman",
-  "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "test": "jest"
-  }
+  "type": "commonjs"
 }
