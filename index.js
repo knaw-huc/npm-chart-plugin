@@ -1,4 +1,4 @@
-require('chart.js');
+//require('chart.js');
 import Chart from 'chart.js/auto'
 import Picker from "vanilla-picker";
 

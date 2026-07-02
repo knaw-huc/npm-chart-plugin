@@ -1,5 +1,5 @@
 {
-  "name": "yasgui-chart-plugin",
+  "name": "@knaw-huc/yasgui-chart-plugin",
   "version": "0.1.0",
   "description": "Yasgui chart plugin",
   "dependencies": {
@@ -10,8 +10,7 @@
   "main": "index.js",
   "keywords": [
     "yasgui",
-    "geo",
-    "tagging"
+    "charts"
   ],
   "homepage": "https://github.com/knaw-huc/npm-chart-plugin#readme",
   "bugs": {
@@ -23,5 +22,5 @@
   },
   "license": "MIT",
   "author": "Rob Zeeman",
-  "type": "commonjs"
+  "type": "module"
 }
